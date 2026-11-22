@@ -50,7 +50,7 @@
 
     .filter-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       align-items: end;
     }
@@ -61,9 +61,12 @@
       gap: 4px;
     }
 
-    .col-span-6 { grid-column: span 6; }
-    .col-span-3 { grid-column: span 3; }
-    .col-span-2 { grid-column: span 2; }
+    /* 关键词：跨整行 + 限宽居中 */
+    .filter-keyword {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: min(560px, 100%);
+    }
 
     .filter-item label {
       font-size: 12px;
@@ -84,7 +87,8 @@
 
     .filter-actions {
       display: flex;
-      gap: 8px;
+      justify-content: center;
+      gap: 12px;
       margin-top: 12px;
     }
 
@@ -309,9 +313,18 @@
       color: #6b7280;
     }
 
-    @media (max-width: 768px) {
+    /* 筛选面板：平板竖屏（601~1023px）→ 2 列 */
+    @media (max-width: 1023px) {
+      .filter-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    /* 筛选面板：手机（≤600px）→ 1 列 */
+    @media (max-width: 600px) {
       .filter-grid { grid-template-columns: 1fr; }
-      .col-span-6, .col-span-3, .col-span-2 { grid-column: span 1; }
+    }
+    
+    /* 专业卡片列表保持原有响应式行为 */
+    @media (max-width: 768px) {
       .major-list { grid-template-columns: 1fr; }
     }
   </style>
@@ -326,8 +339,8 @@
 
     <section class="filter-panel">
       <div class="filter-grid">
-        <!-- 第一行：地域 -->
-        <div class="filter-item col-span-6">
+        <!-- 第 1 行：地域、学位类型、竞争程度、是否保护一志愿 -->
+        <div class="filter-item">
           <label for="region">地域</label>
           <select id="region">
             <option value="">全部</option>
@@ -335,7 +348,6 @@
             <option value="天津市">天津市</option>
             <option value="上海市">上海市</option>
             <option value="重庆市">重庆市</option>
-
             <option value="河北省">河北省</option>
             <option value="山西省">山西省</option>
             <option value="辽宁省">辽宁省</option>
@@ -358,7 +370,6 @@
             <option value="陕西省">陕西省</option>
             <option value="甘肃省">甘肃省</option>
             <option value="青海省">青海省</option>
-
             <option value="内蒙古自治区">内蒙古自治区</option>
             <option value="广西壮族自治区">广西壮族自治区</option>
             <option value="西藏自治区">西藏自治区</option>
@@ -366,9 +377,8 @@
             <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
           </select>
         </div>
-
-        <!-- 第二行：学位类型 -->
-        <div class="filter-item col-span-6">
+      
+        <div class="filter-item">
           <label for="degreeType">学位类型</label>
           <select id="degreeType">
             <option value="">全部</option>
@@ -376,9 +386,8 @@
             <option value="专业学位硕士（专硕）">专业学位硕士（专硕）</option>
           </select>
         </div>
-
-        <!-- 第三行：竞争程度、二外要求、是否考数学 -->
-        <div class="filter-item col-span-2">
+      
+        <div class="filter-item">
           <label for="competitionLevel">竞争程度</label>
           <select id="competitionLevel">
             <option value="">全部</option>
@@ -388,26 +397,8 @@
             <option value="极高">极高</option>
           </select>
         </div>
-        <div class="filter-item col-span-2">
-          <label for="foreignLang">二外要求</label>
-          <select id="foreignLang">
-            <option value="">全部</option>
-            <option value="必考">必考</option>
-            <option value="可选">可选</option>
-            <option value="不考">不考</option>
-          </select>
-        </div>
-        <div class="filter-item col-span-2">
-          <label for="mathExam">是否考数学</label>
-          <select id="mathExam">
-            <option value="">全部</option>
-            <option value="是">是</option>
-            <option value="否">否</option>
-          </select>
-        </div>
-
-        <!-- 第四行：是否保护一志愿、学科评估 -->
-        <div class="filter-item col-span-3">
+      
+        <div class="filter-item">
           <label for="protectFirst">是否保护一志愿</label>
           <select id="protectFirst">
             <option value="">全部</option>
@@ -417,7 +408,28 @@
             <option value="待核实">待核实</option>
           </select>
         </div>
-        <div class="filter-item col-span-3">
+      
+        <!-- 第 2 行：二外要求、是否考数学、学科评估、排序方式 -->
+        <div class="filter-item">
+          <label for="foreignLang">二外要求</label>
+          <select id="foreignLang">
+            <option value="">全部</option>
+            <option value="必考">必考</option>
+            <option value="可选">可选</option>
+            <option value="不考">不考</option>
+          </select>
+        </div>
+      
+        <div class="filter-item">
+          <label for="mathExam">是否考数学</label>
+          <select id="mathExam">
+            <option value="">全部</option>
+            <option value="是">是</option>
+            <option value="否">否</option>
+          </select>
+        </div>
+      
+        <div class="filter-item">
           <label for="subjectLevel">学科评估</label>
           <select id="subjectLevel">
             <option value="">全部</option>
@@ -427,15 +439,8 @@
             <option value="未公开">未公开</option>
           </select>
         </div>
-
-        <!-- 第五行：关键词 -->
-        <div class="filter-item col-span-6">
-          <label for="keyword">院校/专业关键词</label>
-          <input id="keyword" type="text" placeholder="输入学校或专业名称搜索...">
-        </div>
-
-        <!-- 第六行：排序 -->
-        <div class="filter-item col-span-6">
+      
+        <div class="filter-item">
           <label for="sortBy">排序方式</label>
           <select id="sortBy">
             <option value="default">默认排序</option>
@@ -443,6 +448,12 @@
             <option value="ratioDesc">报录比从高到低</option>
             <option value="scoreDesc">录取平均分从高到低</option>
           </select>
+        </div>
+      
+        <!-- 第 3 行：关键词（整行限宽居中） -->
+        <div class="filter-item filter-keyword">
+          <label for="keyword">院校/专业关键词</label>
+          <input id="keyword" type="text" placeholder="输入学校或专业名称搜索...">
         </div>
       </div>
 
