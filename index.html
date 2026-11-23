@@ -189,8 +189,20 @@
       overflow: hidden;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
       border: 1px solid #e5e7eb;
+      animation: fadeInSlide 0.3s ease-out;
     }
 
+    @keyframes fadeInSlide {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }    
+    
     .card-header {
       padding: 10px 12px;
       color: #ffffff;
@@ -327,6 +339,75 @@
     @media (max-width: 768px) {
       .major-list { grid-template-columns: 1fr; }
     }
+    
+    /* === 需求1：筛选面板折叠相关 === */
+    .filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .filter-header h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #1f2937;
+    }
+    /* 复用你的 toggle-btn 样式，但改成适合白色背景的颜色 */
+    .filter-toggle-btn {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .filter-toggle-btn.open { transform: rotate(180deg); }
+    /* 控制筛选内容的平滑展开/收起 */
+    .filter-body {
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      max-height: 1000px; /* 给一个足够大的高度 */
+    }
+    .filter-body.collapsed {
+      max-height: 0;
+    }
+
+    /* === 需求2：已选条件计数 === */
+    .active-count-text {
+      font-size: 13px;
+      color: #6b7280;
+      margin-right: 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* === 需求3：筛选标签条 === */
+    .active-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .filter-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+      border: 1px solid #c7d2fe;
+    }
+      .filter-tag .close-btn {
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        color: #4f46e5;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+      .filter-tag .close-btn:hover {
+        opacity: 1;
+      }
   </style>
 </head>
 <body>
@@ -338,131 +419,139 @@
     </header>
 
     <section class="filter-panel">
-      <div class="filter-grid">
-        <!-- 第 1 行：地域、学位类型、竞争程度、是否保护一志愿 -->
-        <div class="filter-item">
-          <label for="region">地域</label>
-          <select id="region">
-            <option value="">全部</option>
-            <option value="北京市">北京市</option>
-            <option value="天津市">天津市</option>
-            <option value="上海市">上海市</option>
-            <option value="重庆市">重庆市</option>
-            <option value="河北省">河北省</option>
-            <option value="山西省">山西省</option>
-            <option value="辽宁省">辽宁省</option>
-            <option value="吉林省">吉林省</option>
-            <option value="黑龙江省">黑龙江省</option>
-            <option value="江苏省">江苏省</option>
-            <option value="浙江省">浙江省</option>
-            <option value="安徽省">安徽省</option>
-            <option value="福建省">福建省</option>
-            <option value="江西省">江西省</option>
-            <option value="山东省">山东省</option>
-            <option value="河南省">河南省</option>
-            <option value="湖北省">湖北省</option>
-            <option value="湖南省">湖南省</option>
-            <option value="广东省">广东省</option>
-            <option value="海南省">海南省</option>
-            <option value="四川省">四川省</option>
-            <option value="贵州省">贵州省</option>
-            <option value="云南省">云南省</option>
-            <option value="陕西省">陕西省</option>
-            <option value="甘肃省">甘肃省</option>
-            <option value="青海省">青海省</option>
-            <option value="内蒙古自治区">内蒙古自治区</option>
-            <option value="广西壮族自治区">广西壮族自治区</option>
-            <option value="西藏自治区">西藏自治区</option>
-            <option value="宁夏回族自治区">宁夏回族自治区</option>
-            <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
-          </select>
-        </div>
-      
-        <div class="filter-item">
-          <label for="degreeType">学位类型</label>
-          <select id="degreeType">
-            <option value="">全部</option>
-            <option value="学术型硕士（学硕）">学术型硕士（学硕）</option>
-            <option value="专业学位硕士（专硕）">专业学位硕士（专硕）</option>
-          </select>
-        </div>
-      
-        <div class="filter-item">
-          <label for="competitionLevel">竞争程度</label>
-          <select id="competitionLevel">
-            <option value="">全部</option>
-            <option value="低">低</option>
-            <option value="中">中</option>
-            <option value="高">高</option>
-            <option value="极高">极高</option>
-          </select>
-        </div>
-      
-        <div class="filter-item">
-          <label for="protectFirst">是否保护一志愿</label>
-          <select id="protectFirst">
-            <option value="">全部</option>
-            <option value="是">是</option>
-            <option value="否">否</option>
-            <option value="部分保护">部分保护</option>
-            <option value="待核实">待核实</option>
-          </select>
-        </div>
-      
-        <!-- 第 2 行：二外要求、是否考数学、学科评估、排序方式 -->
-        <div class="filter-item">
-          <label for="foreignLang">二外要求</label>
-          <select id="foreignLang">
-            <option value="">全部</option>
-            <option value="必考">必考</option>
-            <option value="可选">可选</option>
-            <option value="不考">不考</option>
-          </select>
-        </div>
-      
-        <div class="filter-item">
-          <label for="mathExam">是否考数学</label>
-          <select id="mathExam">
-            <option value="">全部</option>
-            <option value="是">是</option>
-            <option value="否">否</option>
-          </select>
-        </div>
-      
-        <div class="filter-item">
-          <label for="subjectLevel">学科评估</label>
-          <select id="subjectLevel">
-            <option value="">全部</option>
-            <option value="A类">A类</option>
-            <option value="B类">B类</option>
-            <option value="C类">C类</option>
-            <option value="未公开">未公开</option>
-          </select>
-        </div>
-      
-        <div class="filter-item">
-          <label for="sortBy">排序方式</label>
-          <select id="sortBy">
-            <option value="default">默认排序</option>
-            <option value="ratioAsc">报录比从低到高</option>
-            <option value="ratioDesc">报录比从高到低</option>
-            <option value="scoreDesc">录取平均分从高到低</option>
-          </select>
-        </div>
-      
-        <!-- 第 3 行：关键词（整行限宽居中） -->
-        <div class="filter-item filter-keyword">
-          <label for="keyword">院校/专业关键词</label>
-          <input id="keyword" type="text" placeholder="输入学校或专业名称搜索...">
+      <div class="filter-header" onclick="toggleFilterPanel()">
+        <h2>筛选条件</h2>
+        <button class="toggle-btn filter-toggle-btn open" id="filterToggleBtn">▼</button>
+      </div>
+      <div class="filter-body" id="filterBody">        
+        <div class="filter-grid">
+          <!-- 第 1 行：地域、学位类型、竞争程度、是否保护一志愿 -->
+          <div class="filter-item">
+            <label for="region">地域</label>
+            <select id="region">
+              <option value="">全部</option>
+              <option value="北京市">北京市</option>
+              <option value="天津市">天津市</option>
+              <option value="上海市">上海市</option>
+              <option value="重庆市">重庆市</option>
+              <option value="河北省">河北省</option>
+              <option value="山西省">山西省</option>
+              <option value="辽宁省">辽宁省</option>
+              <option value="吉林省">吉林省</option>
+              <option value="黑龙江省">黑龙江省</option>
+              <option value="江苏省">江苏省</option>
+              <option value="浙江省">浙江省</option>
+              <option value="安徽省">安徽省</option>
+              <option value="福建省">福建省</option>
+              <option value="江西省">江西省</option>
+              <option value="山东省">山东省</option>
+              <option value="河南省">河南省</option>
+              <option value="湖北省">湖北省</option>
+              <option value="湖南省">湖南省</option>
+              <option value="广东省">广东省</option>
+              <option value="海南省">海南省</option>
+              <option value="四川省">四川省</option>
+              <option value="贵州省">贵州省</option>
+              <option value="云南省">云南省</option>
+              <option value="陕西省">陕西省</option>
+              <option value="甘肃省">甘肃省</option>
+              <option value="青海省">青海省</option>
+              <option value="内蒙古自治区">内蒙古自治区</option>
+              <option value="广西壮族自治区">广西壮族自治区</option>
+              <option value="西藏自治区">西藏自治区</option>
+              <option value="宁夏回族自治区">宁夏回族自治区</option>
+              <option value="新疆维吾尔自治区">新疆维吾尔自治区</option>
+            </select>
+          </div>
+        
+          <div class="filter-item">
+            <label for="degreeType">学位类型</label>
+            <select id="degreeType">
+              <option value="">全部</option>
+              <option value="学术型硕士（学硕）">学术型硕士（学硕）</option>
+              <option value="专业学位硕士（专硕）">专业学位硕士（专硕）</option>
+            </select>
+          </div>
+        
+          <div class="filter-item">
+            <label for="competitionLevel">竞争程度</label>
+            <select id="competitionLevel">
+              <option value="">全部</option>
+              <option value="低">低</option>
+              <option value="中">中</option>
+              <option value="高">高</option>
+              <option value="极高">极高</option>
+            </select>
+          </div>
+        
+          <div class="filter-item">
+            <label for="protectFirst">是否保护一志愿</label>
+            <select id="protectFirst">
+              <option value="">全部</option>
+              <option value="是">是</option>
+              <option value="否">否</option>
+              <option value="部分保护">部分保护</option>
+              <option value="待核实">待核实</option>
+            </select>
+          </div>
+        
+          <!-- 第 2 行：二外要求、是否考数学、学科评估、排序方式 -->
+          <div class="filter-item">
+            <label for="foreignLang">二外要求</label>
+            <select id="foreignLang">
+              <option value="">全部</option>
+              <option value="必考">必考</option>
+              <option value="可选">可选</option>
+              <option value="不考">不考</option>
+            </select>
+          </div>
+        
+          <div class="filter-item">
+            <label for="mathExam">是否考数学</label>
+            <select id="mathExam">
+              <option value="">全部</option>
+              <option value="是">是</option>
+              <option value="否">否</option>
+            </select>
+          </div>
+        
+          <div class="filter-item">
+            <label for="subjectLevel">学科评估</label>
+            <select id="subjectLevel">
+              <option value="">全部</option>
+              <option value="A类">A类</option>
+              <option value="B类">B类</option>
+              <option value="C类">C类</option>
+              <option value="未公开">未公开</option>
+            </select>
+          </div>
+        
+          <div class="filter-item">
+            <label for="sortBy">排序方式</label>
+            <select id="sortBy">
+              <option value="default">默认排序</option>
+              <option value="ratioAsc">报录比从低到高</option>
+              <option value="ratioDesc">报录比从高到低</option>
+              <option value="scoreDesc">录取平均分从高到低</option>
+            </select>
+          </div>
+        
+          <!-- 第 3 行：关键词（整行限宽居中） -->
+          <div class="filter-item filter-keyword">
+            <label for="keyword">院校/专业关键词</label>
+            <input id="keyword" type="text" placeholder="输入学校或专业名称搜索...">
+          </div>
         </div>
       </div>
-
+      
       <div class="filter-actions">
-        <button class="btn btn-primary" onclick="filterMajors()">筛选</button>
+        <span id="activeCountText" class="active-count-text">已选 0 个条件</span>
         <button class="btn btn-default" onclick="resetFilters()">重置</button>
       </div>
     </section>
-
+    
+    <div id="activeFilters" class="active-filters"></div>
+    
     <div class="result-bar">
       <span>共找到 <strong id="resultCount">0</strong> 个专业</span>
       
@@ -476,7 +565,7 @@
     </div>
 
     <main id="resultContainer"></main>
-    <div id="emptyState" class="empty-state">暂无符合条件的专业，请调整筛选条件。</div>
+    <div id="emptyState" class="empty-state">暂无符合条件专业，请调整筛选条件。</div>
   </div>
 
   <script>
@@ -601,6 +690,15 @@
 
     window.onload = function() {
       filterMajors();
+      // ✅ 新增：即时生效逻辑
+      // 1. 监听所有下拉框（select）的变化
+      document.querySelectorAll('.filter-grid select').forEach(select => {
+        select.addEventListener('change', filterMajors);
+      });
+    
+      // 2. 监听关键词输入框的输入（实时搜索）
+      const keywordInput = document.getElementById('keyword');
+      keywordInput.addEventListener('input', filterMajors);      
     };
 
     function filterMajors() {
@@ -640,6 +738,7 @@
       }
 
       renderMajors(filteredMajors);
+      updateFilterUI();
     }
 
     function renderMajors(data) {
@@ -671,9 +770,12 @@
       // 渲染卡片
       let html = '';
       for (const region in groupedData) {
+        // ✅ 获取当前地域下的专业数量
+        const count = groupedData[region].length;
+        
         html += `
           <section class="region-section">
-            <h3 class="region-title">${region}</h3>
+            <h3 class="region-title">${region}（${count}）</h3>
             <div class="major-list">
         `;
 
@@ -829,6 +931,54 @@
           scrollToCenter();
         }
       }
+    }
+    
+    // 更新已选条件标签和数量
+    function updateFilterUI() {
+      // 映射表：把元素的 id 映射成用户看得懂的标签名
+      const filterMap = {
+        region: '地域',
+        degreeType: '学位类型',
+        competitionLevel: '竞争程度',
+        protectFirst: '保护一志愿',
+        foreignLang: '二外要求',
+        mathExam: '考数学',
+        subjectLevel: '学科评估',
+        keyword: '关键词'
+      };
+      
+      let count = 0;
+      let tagsHtml = '';
+      
+      for (let key in filterMap) {
+        const el = document.getElementById(key);
+        const val = el.value.trim();
+        if (val) {
+          count++;
+          tagsHtml += `<div class="filter-tag">
+            ${filterMap[key]}: ${val} 
+            <span class="close-btn" onclick="removeFilter('${key}')">×</span>
+          </div>`;
+        }
+      }
+      
+      document.getElementById('activeCountText').textContent = `已选 ${count} 个条件`;
+      document.getElementById('activeFilters').innerHTML = tagsHtml;
+    }
+    
+    // 点击标签上的 × 取消该条件
+    function removeFilter(key) {
+      document.getElementById(key).value = '';
+      filterMajors(); // 重新触发筛选，里面的 updateFilterUI 会自动更新UI
+    }
+    
+    // 展开/收起筛选面板
+    function toggleFilterPanel() {
+      const body = document.getElementById('filterBody');
+      const btn = document.getElementById('filterToggleBtn');
+      
+      body.classList.toggle('collapsed');
+      btn.classList.toggle('open');
     }
   </script>
 </body>
