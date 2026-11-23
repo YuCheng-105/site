@@ -397,17 +397,107 @@
       font-size: 12px;
       border: 1px solid #c7d2fe;
     }
-      .filter-tag .close-btn {
-        cursor: pointer;
-        font-size: 14px;
-        line-height: 1;
-        color: #4f46e5;
-        opacity: 0.6;
-        transition: opacity 0.2s;
-      }
-      .filter-tag .close-btn:hover {
-        opacity: 1;
-      }
+    .filter-tag .close-btn {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      color: #4f46e5;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+    .filter-tag .close-btn:hover {
+      opacity: 1;
+    }
+    
+    /* === 超过 4 个的折叠容器 === */
+    .more-wrapper {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .more-wrapper.expanded {
+      grid-template-rows: 1fr;
+    }
+    .more-inner {
+      overflow: hidden;
+    }
+    
+    /* === 查看更多按钮 === */
+    .more-btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .btn-more {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      padding: 6px 24px;
+      border-radius: 20px;
+      color: #4b5563;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .btn-more:hover {
+      background: #f3f4f6;
+    }
+    .btn-more .arrow {
+      font-size: 10px;
+      display: inline-block;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-more.expanded .arrow {
+      transform: rotate(180deg);
+    }
+    
+    /* === 收藏五角星按钮 === */
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
+    
+    .star-btn {
+      background: none;
+      border: none;
+      padding: 4px;
+      margin-right: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+    
+    .star-btn:hover {
+      transform: scale(1.15);
+    }
+    
+    .star-icon {
+      fill: none;
+      stroke: #ffffff; /* 白色轮廓 */
+      stroke-width: 2;
+      stroke-linejoin: round;
+      transition: all 0.2s ease;
+    }
+    
+    /* 已收藏状态：高饱和亮黄色填充，无轮廓 */
+    .star-btn.favorited .star-icon {
+      fill: #FACC15; 
+      stroke: #FACC15; 
+    }
+    
+    /* ✅ 新增：取消下方普通卡片的强制重播动画，仅在初次渲染时生效 */
+    .major-card {
+      /* 保留你原来的，如果不需要每次筛选全屏闪，可以这样改： */
+      animation: fadeInSlide 0.3s ease-out;
+    }
+    /* 收藏组容器内的卡片自带淡入 */
+    #favoriteGroupContainer .major-card {
+      animation: fadeInSlide 0.3s ease-out;
+    }
   </style>
 </head>
 <body>
@@ -564,7 +654,12 @@
       <span>数据年份：2026</span>
     </div>
 
-    <main id="resultContainer"></main>
+    <main>
+      <!-- 专门放收藏组，独立更新 -->
+      <div id="favoriteGroupContainer"></div>
+      <!-- 专门放普通地域组，不随便重绘 -->
+      <div id="regularGroupContainer"></div>
+    </main>
     <div id="emptyState" class="empty-state">暂无符合条件专业，请调整筛选条件。</div>
   </div>
 
@@ -577,6 +672,13 @@
         protectFirst: "是", subjectLevel: "A+", subjectCategory: "A类", reportRatio: 25.6,
         recheckLine: 385, recommendRatio: "45.0%", avgScore: 395, competitionLevel: "极高",
         notice: "翻译界最高学府，口译方向难度极大，需具备极强的双语转换与临场应变能力。"
+      },
+      {
+        school: "北京某外国语大学", college: "高级翻译学院", majorName: "翻译学", majorCode: "055104",
+        region: "北京市", degreeType: "专业学位硕士（专硕）", foreignLang: "必考", mathExam: "否",
+        protectFirst: "是", subjectLevel: "A+", subjectCategory: "A类", reportRatio: 23.5,
+        recheckLine: 371, recommendRatio: "35.0%", avgScore: 385, competitionLevel: "极高",
+        notice: "翻译界最高学府，就业认可率高，竞争激烈。"
       },
       {
         school: "上海外国语大学", college: "高级翻译学院", majorName: "翻译学（文学）", majorCode: "0502Z1",
@@ -687,6 +789,42 @@
         notice: "特色农业翻译方向，极度冷门但就业针对性强，极易上岸。"
       }
     ];
+    
+    // 全局变量，记录被收藏的专业唯一标识 (学校名_专业代码)
+    const favorites = new Set();
+    let currentFilteredMajors = []; // 保存当前筛选结果，供局部更新使用
+    
+    // 切换收藏状态
+    function toggleFavorite(event, majorId) {
+      event.stopPropagation(); // 阻止触发展开卡片
+      
+      const isNowFav = !favorites.has(majorId);
+      if (isNowFav) {
+        favorites.add(majorId);
+      } else {
+        favorites.delete(majorId);
+      }
+      
+      // 1. 原地同步页面上所有对应的星星（瞬间变色，无 DOM 重建）
+      document.querySelectorAll(`.star-btn[data-major-id="${majorId}"]`).forEach(btn => {
+        btn.classList.toggle('favorited', isNowFav);
+      });
+      
+      // 2. 仅重新渲染“收藏组”容器
+      updateFavGroupOnly();
+    }
+    
+    function updateFavGroupOnly() {
+      const favContainer = document.getElementById('favoriteGroupContainer');
+      const favMajors = currentFilteredMajors.filter(m => favorites.has(m.school + '_' + m.majorCode));
+      
+      if (favMajors.length === 0) {
+        favContainer.innerHTML = '';
+      } else {
+        // 使用下面重写的生成函数
+        favContainer.innerHTML = generateGroupHtml('收藏', favMajors, true);
+      }
+    }
 
     window.onload = function() {
       filterMajors();
@@ -742,131 +880,140 @@
     }
 
     function renderMajors(data) {
-      const container = document.getElementById('resultContainer');
       const emptyState = document.getElementById('emptyState');
       const resultCount = document.getElementById('resultCount');
-
-      // 更新结果数量
+      const favContainer = document.getElementById('favoriteGroupContainer');
+      const regContainer = document.getElementById('regularGroupContainer');
+    
       resultCount.textContent = data.length;
-
-      // 处理空状态显示
+    
       if (data.length === 0) {
         emptyState.style.display = 'block';
-        container.innerHTML = '';
+        favContainer.innerHTML = '';
+        regContainer.innerHTML = '';
         return;
       } else {
         emptyState.style.display = 'none';
       }
-
-      // 按地域分组数据
+    
+      // ✅ 更新全局记录，供局部更新用
+      currentFilteredMajors = data;
+    
+      // 1. 渲染收藏组
+      const favMajors = data.filter(m => favorites.has(m.school + '_' + m.majorCode));
+      favContainer.innerHTML = favMajors.length > 0 ? generateGroupHtml('收藏', favMajors, true) : '';
+    
+      // 2. 渲染普通地域组
       const groupedData = data.reduce((acc, major) => {
-        if (!acc[major.region]) {
-          acc[major.region] = [];
-        }
+        if (!acc[major.region]) acc[major.region] = [];
         acc[major.region].push(major);
         return acc;
       }, {});
-
-      // 渲染卡片
-      let html = '';
+    
+      let regularHtml = '';
       for (const region in groupedData) {
-        // ✅ 获取当前地域下的专业数量
-        const count = groupedData[region].length;
-        
-        html += `
-          <section class="region-section">
-            <h3 class="region-title">${region}（${count}）</h3>
-            <div class="major-list">
-        `;
-
-        groupedData[region].forEach((major, index) => {
-          // 生成唯一的ID用于展开/收起
-          const cardId = `card-${region.replace(/\s+/g, '-')}-${index}`;
-          
-          // 根据竞争程度确定卡片头部样式类
-          let competitionClass = '';
-          switch(major.competitionLevel) {
-            case '低': competitionClass = 'competition-low'; break;
-            case '中': competitionClass = 'competition-medium'; break;
-            case '高': competitionClass = 'competition-high'; break;
-            case '极高': competitionClass = 'competition-extreme'; break;
-            default: competitionClass = 'competition-medium';
-          }
-
-          html += `
-            <div class="major-card">
-              <div class="card-header ${competitionClass}" onclick="toggleCard('${cardId}')">
-                <div class="header-left">
-                  <h2>${major.school} - ${major.majorName}</h2>
-                  <p>${major.college} | 代码: ${major.majorCode}</p>
-                </div>
+        regularHtml += generateGroupHtml(region, groupedData[region], false);
+      }
+      regContainer.innerHTML = regularHtml;
+    }
+    
+    // ✅ 新增：抽离出的通用 HTML 生成函数
+    function generateGroupHtml(groupTitle, groupData, isFavGroup = false) {
+      const count = groupData.length;
+      if (count === 0) return '';
+    
+      const generateCardHtml = (major, index) => {
+        const majorId = major.school + '_' + major.majorCode;
+        const isFav = favorites.has(majorId);
+        // 区分ID，防止两边冲突
+        const prefix = isFavGroup ? 'fav-' : ''; 
+        const cardId = `${prefix}card-${majorId.replace(/\s+/g, '-')}-${index}`;
+    
+        let competitionClass = '';
+        switch(major.competitionLevel) {
+          case '低': competitionClass = 'competition-low'; break;
+          case '中': competitionClass = 'competition-medium'; break;
+          case '高': competitionClass = 'competition-high'; break;
+          case '极高': competitionClass = 'competition-extreme'; break;
+          default: competitionClass = 'competition-medium';
+        }
+    
+        return `
+          <div class="major-card">
+            <div class="card-header ${competitionClass}" onclick="toggleCard('${cardId}')">
+              <div class="header-left">
+                <h2>${major.school} - ${major.majorName}</h2>
+                <p>${major.college} | 代码: ${major.majorCode}</p>
+              </div>
+              <div class="header-right">
+                <button class="star-btn ${isFav ? 'favorited' : ''}" data-major-id="${majorId}" onclick="toggleFavorite(event, '${majorId}')">
+                  <svg viewBox="0 0 24 24" width="20" height="20" class="star-icon">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                </button>
                 <button class="toggle-btn" id="btn-${cardId}">▼</button>
               </div>
-              <div class="card-body" id="${cardId}">
-                <div class="card-body-inner">
-                  <div class="compact-data">
-                    <div class="data-item">
-                      <span class="data-label">学位类型:</span>
-                      <span class="data-value">${major.degreeType}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">竞争程度:</span>
-                      <span class="data-value">${major.competitionLevel}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">报录比:</span>
-                      <span class="data-value" style="color: ${
-                        major.competitionLevel === '低' ? '#10b981' : 
-                        major.competitionLevel === '中' ? '#f59e0b' : 
-                        major.competitionLevel === '高' ? '#f97316' : '#ef4444'
-                      }; font-weight: bold;">${major.reportRatio}:1</span>
-                    </div>
-
-                    <div class="data-item">
-                      <span class="data-label">复试线:</span>
-                      <span class="data-value">${major.recheckLine}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">推免占比:</span>
-                      <span class="data-value ${parseFloat(major.recommendRatio) > 20 ? 'warning' : 'success'}">${major.recommendRatio}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">录取均分:</span>
-                      <span class="data-value">${major.avgScore}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">二外要求:</span>
-                      <span class="data-value">${major.foreignLang}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">考数学:</span>
-                      <span class="data-value">${major.mathExam}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">保护一志愿:</span>
-                      <span class="data-value">${major.protectFirst}</span>
-                    </div>
-                    <div class="data-item">
-                      <span class="data-label">学科评估:</span>
-                      <span class="data-value">${major.subjectLevel}</span>
-                    </div>
-                  </div>
-                  <div class="notice">
-                    <strong>备考提示：</strong>${major.notice}
-                  </div>
+            </div>
+            <div class="card-body" id="${cardId}">
+              <div class="card-body-inner">
+                <div class="compact-data">
+                  <!-- ... 原来的数据展示代码保持完全不变 ... -->
+                  <div class="data-item"><span class="data-label">学位类型:</span><span class="data-value">${major.degreeType}</span></div>
+                  <div class="data-item"><span class="data-label">竞争程度:</span><span class="data-value">${major.competitionLevel}</span></div>
+                  <div class="data-item"><span class="data-label">报录比:</span><span class="data-value" style="color: ${major.competitionLevel === '低' ? '#10b981' : major.competitionLevel === '中' ? '#f59e0b' : major.competitionLevel === '高' ? '#f97316' : '#ef4444'}; font-weight: bold;">${major.reportRatio}:1</span></div>
+                  <div class="data-item"><span class="data-label">复试线:</span><span class="data-value">${major.recheckLine}</span></div>
+                  <div class="data-item"><span class="data-label">推免占比:</span><span class="data-value ${parseFloat(major.recommendRatio) > 20 ? 'warning' : 'success'}">${major.recommendRatio}</span></div>
+                  <div class="data-item"><span class="data-label">录取均分:</span><span class="data-value">${major.avgScore}</span></div>
+                  <div class="data-item"><span class="data-label">二外要求:</span><span class="data-value">${major.foreignLang}</span></div>
+                  <div class="data-item"><span class="data-label">考数学:</span><span class="data-value">${major.mathExam}</span></div>
+                  <div class="data-item"><span class="data-label">保护一志愿:</span><span class="data-value">${major.protectFirst}</span></div>
+                  <div class="data-item"><span class="data-label">学科评估:</span><span class="data-value">${major.subjectLevel}</span></div>
                 </div>
+                <div class="notice"><strong>备考提示：</strong>${major.notice}</div>
               </div>
             </div>
-          `;
+          </div>
+        `;
+      };
+    
+      let cardsHtml = '';
+      // 渲染前 4 个
+      cardsHtml += `<div class="major-list">`;
+      groupData.slice(0, 4).forEach((major, index) => {
+        cardsHtml += generateCardHtml(major, index);
+      });
+      cardsHtml += `</div>`;
+    
+      // 渲染超过 4 个的部分
+      if (count > 4) {
+        const moreId = `${isFavGroup ? 'fav-' : ''}more-${groupTitle.replace(/\s+/g, '-')}`;
+        cardsHtml += `
+          <div class="more-wrapper collapsed" id="${moreId}">
+            <div class="more-inner">
+              <div class="major-list" style="margin-top: 12px;">
+        `;
+        groupData.slice(4).forEach((major, index) => {
+          cardsHtml += generateCardHtml(major, index + 4);
         });
-
-        html += `
+        cardsHtml += `
+              </div>
             </div>
-          </section>
+          </div>
+          <div class="more-btn-wrap">
+            <button class="btn-more" onclick="toggleMore('${moreId}', this)">
+              <span class="btn-text">查看更多</span> 
+              <span class="arrow">▼</span>
+            </button>
+          </div>
         `;
       }
-
-      container.innerHTML = html;
+    
+      return `
+        <section class="region-section">
+          <h3 class="region-title">${groupTitle}（${count}）</h3>
+          ${cardsHtml}
+        </section>
+      `;
     }
 
     // 重置筛选条件
@@ -932,6 +1079,25 @@
         }
       }
     }
+    
+    // 展开/收起超过4个的专业
+    function toggleMore(wrapperId, btnElement) {
+    const wrapper = document.getElementById(wrapperId);
+      
+    // 切换折叠容器的展开状态
+    wrapper.classList.toggle('expanded');
+      
+    // 切换按钮的箭头动画状态
+    btnElement.classList.toggle('expanded');
+      
+    // 更改按钮文字
+    const textSpan = btnElement.querySelector('.btn-text');
+    if (btnElement.classList.contains('expanded')) {
+        textSpan.textContent = '收起更多';
+    } else {
+        textSpan.textContent = '查看更多';
+    }
+    }    
     
     // 更新已选条件标签和数量
     function updateFilterUI() {
